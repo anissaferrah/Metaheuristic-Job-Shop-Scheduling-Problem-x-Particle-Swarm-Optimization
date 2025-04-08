@@ -7,29 +7,33 @@ class JSP_PSO_Solver:
     A class to solve the Job Shop Scheduling Problem (JSP) using Particle Swarm Optimization (PSO).
     The class includes methods for initializing the particles, updating their positions, and calculating fitness.
     """
-    def __init__(self, instance, num_particles, max_iterations):
+    def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=1000,weight=0.9,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
         self.instance = instance
-        self.num_particles = num_particles
-        self.max_iterations = max_iterations
-        self.particles = [self.initialize_particle() for _ in range(num_particles)]
+        self.population_size = population_size
+        self.neighberhood_size = neighberhood_size
+        self.max_iterations = max_iteration
+        self.weight =   # Inertia weight
+        self.cpersonal = 1.5  # Personal best weight
+        self.cglobal = 0.5 # Global best weight
+        self.clocal = 1.5 # Local best weight
+        self.cneighbor = 1.5 # Near neighborhood best weight
+        self.vmax = vmax # Maximum velocity
+        self.crossover_probability = crossover_probability # Crossover probability
+        self.pu = pu # Probability of keeping the same position in the next iteration and not setting it to pgbest
+        self.delta = delta # Delta value for the scheduling algorithm
+        self.particles = [self.initialize_particle(i) for i in range(population_size)]
         self.global_best_position = None
         self.global_best_fitness = float('inf')
 
-    def decode_position(self, particle, problem_instance=None):
-        if problem_instance is None:
-            # Default to a problem instance with 1 job and 1 machine
-            num_jobs = 1
-            num_machines = 1
-        else:
-            num_jobs= problem_instance.num_jobs
-            num_machines= problem_instance.num_machines
+    def decode_position(self, particle):
         # Decode the position into a schedule
-        # Get the operration-based permutation from the position
-        obpermutation = self.get_operation_based_permutation(particle.position, num_jobs, num_machines)
+        # Get the operation-based permutation from the position
+        obpermutation = self.get_operation_based_permutation(particle.position)
         # Convert the operation-based permutation into a priority order
         priority_order = self.obpermuation_to_priority_order(obpermutation)
         # Generate the schedule based on the priority order
-        schedule = self.generate_schedule(priority_order, problem_instance)
+        schedule = self.generate_schedule(priority_order)
+        # Return the schedule
         return schedule
     
     def get_operation_based_permutation(self, position):
@@ -40,9 +44,9 @@ class JSP_PSO_Solver:
                   for i in range(self.instance.num_jobs)]
         # Create the operation-based permutation
         permutation = np.zeros(len(position), dtype=int)
-        for priority, group in enumerate(groups, 1):
+        for job, group in enumerate(groups):
             for idx in group:
-                permutation[idx] = priority
+                permutation[idx] = job
         return permutation
 
     """
@@ -52,53 +56,49 @@ class JSP_PSO_Solver:
     """
     def obpermuation_to_priority_order(self, obpermutation):
         priority_order = {}
-        job_operations_counters= {j:0 for j in range(self.instance.num_jobs)}
+        job_operations_counter= {j:0 for j in range(self.instance.num_jobs)}
         for priority , job in enumerate(obpermutation):
-            op_index = job_operations_counters[job]
+            op_index = job_operations_counter[job]
             priority_order[(job,op_index)] = priority
-            job_operations_counters[job] += 1        
+            job_operations_counter[job] += 1        
         return priority_order
     
-    def generate_schedule(self, priority_order , problem_instance=None):
-        if problem_instance is None:
-            # Default to a problem instance with 1 job and 1 machine
-            num_jobs = 0
-            num_machines = 0
-            operations = []
-        else:
-            num_jobs= problem_instance.num_jobs
-            num_machines= problem_instance.num_machines
-            operations= problem_instance.operations
+    def generate_schedule(self, priority_order ):
         # Initialize the schedule and needed variables
         stage = 1
-        schedule = [[(-1,-1,-1,-1) for _ in range(num_machines)] for _ in range(num_jobs)]
-        S = set(priority_order.keys())
+        schedule = [[(-1,-1,-1,-1) for _ in range(self.instance.num_machines)] for _ in range(self.instance.num_jobs)]
+        S = set()
+        for op in priority_order:
+            if op[1] == 0:
+                S.add(op)    
+        #  The processing time of the operation Oij
         processing_times = np.array([[op[1] for op in job] for job in self.instance.operations])
+
+        # The earliest time that operation Oij in St could be started
         sigma = []
-        for jidx in range(num_jobs):
+        for jidx in range(self.instance.num_jobs):
             sigma.append([])
-            for opidx in range(num_machines,1):
-                sigma[jidx].append(operations[jidx][opidx-1][1])
+            for opidx in range(1,self.instance.num_machines):
+                sigma[jidx].append(self.instance.operations[jidx][opidx-1][1])
         sigma= np.array(sigma)
+
         phi= np.add(processing_times, sigma)
-        delta=0
-        secheduled_machines_end_times = [0]*num_machines
+
+        secheduled_machines_end_times = [0]*self.instance.num_machines
         while S:
             # Finding phi_star and sigma_star and M_star
             phi_star = float('inf')
             sigma_star = float('inf')
-            for jidx in range(num_jobs):
-                for opidx in range(num_machines):
+            for jidx in range(self.instance.num_jobs):
+                for opidx in range(self.instance.num_machines):
                     if phi[jidx][opidx] < phi_star:
                         phi_star = phi[jidx][opidx]
-                        jidx_star = jidx
-                        opidx_star = opidx
                     if sigma[jidx][opidx] < sigma_star:
                         sigma_star = sigma[jidx][opidx]
             # Getting the candidates for M_star
             M_stars = []
-            for jidx in range(num_jobs):
-                for opidx in range(num_machines):
+            for jidx in range(self.instance.num_jobs):
+                for opidx in range(self.instance.num_machines):
                     if phi[jidx][opidx] == phi_star:
                         M_stars.append((jidx,opidx,self.instance.operations[jidx][opidx][0]))
             # Getting the M_star based on the machine index
@@ -110,14 +110,14 @@ class JSP_PSO_Solver:
             
             # Getting the operations in which they occur in M_star and satisfy the formula
             O_stars = []
-            for jidx in range(num_jobs):
-                for opidx in range(num_machines):
+            for jidx in range(self.instance.num_jobs):
+                for opidx in range(self.instance.num_machines):
                     if self.instance.operations[jidx][opidx][0] == M_star:
-                        if delta == 0:
+                        if self.delta == 0:
                             if sigma[jidx_star][opidx_star] == sigma_star:
                                 O_stars.append((jidx, opidx))
                         else:
-                            if phi[jidx_star][opidx_star] <sigma_star+ delta*(phi_star-sigma_star):
+                            if sigma[jidx_star][opidx_star] <sigma_star+ self.delta*(phi_star-sigma_star):
                                 O_stars.append((jidx, opidx))
             # Selecting O_star based on the priority order
             O_star=sorted(O_stars, key=lambda x: priority_order[x])[0]
@@ -125,23 +125,27 @@ class JSP_PSO_Solver:
             # Create the next stage schedule
             if O_star[1] == 0:
                 start_time = secheduled_machines_end_times[M_star]
-            elif secheduled_machines_end_times[M_star] > schedule[O_star[0]][O_star[1]-1][2] :
+            elif secheduled_machines_end_times[M_star] > schedule[O_star[0]][O_star[1]-1][3]:
                 start_time = secheduled_machines_end_times[M_star]
             else:
-                start_time = schedule[O_star[0]][O_star[1]-1][2]
-            end_time = start_time + operations[O_star[0]][O_star[1]][1]
+                start_time = schedule[O_star[0]][O_star[1]-1][3]
+            end_time = start_time + self.instance.operations[O_star[0]][O_star[1]][1]
             schedule[O_star[0]][O_star[1]] = (O_star[0], M_star, start_time, end_time)
             secheduled_machines_end_times[M_star] = end_time
             # Create the next stage set of operations to be schuduled
             S.remove(O_star)
+            if O_star[1]+1 < self.instance.num_machines:
+                S.add((O_star[0], O_star[1]+1))
             stage += 1
         return schedule
     
-    def fitness(self, schedule=None):
-        if schedule is None:
-            schedule = self.decode_position(self.particles[0])
-        # Calculate the makespan of the schedule
-        makespan = max([op[3] for job in schedule for op in job])
+    def fitness(self, particle):
+        # Calculate the makespan of the particle's schedule
+        makespan = max([op[3] for job in particle.schedule for op in job])
         return makespan
+    
+    def initialize_particle(self, index):
+        particle=Particle(index=index ,solver=self)
+        return particle
     
     

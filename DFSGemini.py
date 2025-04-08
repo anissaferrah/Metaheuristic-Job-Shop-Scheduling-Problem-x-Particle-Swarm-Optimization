@@ -76,7 +76,7 @@ class JobShopPureDFS:
             'machine_schedules': {m: [] for m in self.machines},
             'scheduled_ops': set(),
             'op_end_times': {},
-            'current_makespan': 0
+            'current_makespan': 0#shouldn't this be inf ?
         }
 
         self._log_state(initial_state, action="Initial state")

@@ -5,7 +5,7 @@ class JSP_PSO_Solver:
     """
     A class to solve the Job Shop Scheduling Problem (JSP) using Particle Swarm Optimization (PSO).
     The class includes methods for initializing the particles, updating their positions, and calculating fitness.
-    """,
+    """
     def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=1000,weight=0.9,slope=-5/9990,intercept=8996/9990,min_weight=0.1,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
         self.instance = instance
         self.population_size = population_size

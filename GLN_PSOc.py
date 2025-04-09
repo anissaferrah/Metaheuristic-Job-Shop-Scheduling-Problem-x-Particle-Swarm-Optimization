@@ -1,22 +1,24 @@
 from Particle import Particle
 from Instance import Instance
 import numpy as np
-import matplotlib.pyplot as plt
 class JSP_PSO_Solver:
     """
     A class to solve the Job Shop Scheduling Problem (JSP) using Particle Swarm Optimization (PSO).
     The class includes methods for initializing the particles, updating their positions, and calculating fitness.
-    """
-    def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=1000,weight=0.9,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
+    """,
+    def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=1000,weight=0.9,slope=-5/9990,intercept=8996/9990,min_weight=0.1,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
         self.instance = instance
         self.population_size = population_size
         self.neighberhood_size = neighberhood_size
         self.max_iterations = max_iteration
-        self.weight = 0.9  # Inertia weight
-        self.cpersonal = 1.5  # Personal best weight
-        self.cglobal = 0.5 # Global best weight
-        self.clocal = 1.5 # Local best weight
-        self.cneighbor = 1.5 # Near neighborhood best weight
+        self.weight = weight  # Inertia weight
+        self.slope = slope # Slope value for the inertia weight
+        self.intercept = intercept # Intercept value for the inertia weight
+        self.min_weight = min_weight # Minimum weight for the inertia weight
+        self.cpersonal = cpersonal  # Personal best weight
+        self.cglobal = cglobal # Global best weight
+        self.clocal = clocal # Local best weight
+        self.cneighbor = cneighbor # Near neighborhood best weight
         self.vmax = vmax # Maximum velocity
         self.crossover_probability = crossover_probability # Crossover probability
         self.pu = pu # Probability of keeping the same position in the next iteration and not setting it to pgbest
@@ -144,6 +146,12 @@ class JSP_PSO_Solver:
     def initialize_particle(self, index):
         particle=Particle(index=index ,solver=self)
         return particle
+    
+    def update_weight(self):
+        # Update the inertia weight based on the iteration number
+        self.weight = self.weight * self.slope + self.intercept
+        if self.weight < self.min_weight:
+            self.weight = self.min_weight
     
     def run_solver(self):
         # Run the PSO algorithm

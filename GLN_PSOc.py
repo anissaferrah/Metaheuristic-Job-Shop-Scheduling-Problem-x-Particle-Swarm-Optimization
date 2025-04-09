@@ -23,7 +23,9 @@ class JSP_PSO_Solver:
         self.pu = pu # Probability of keeping the same position in the next iteration and not setting it to pgbest
         self.delta = delta # Delta value for the scheduling algorithm
         self.particles = [self.initialize_particle(i) for i in range(population_size)]
-        self.global_best = None
+        self.global_best = self.particles[0]  # Initialize the global best particle
+        self.global_best.update_schedule()
+        self.global_best.update_current_fitness()
 
     def decode_position(self, position):
         # Decode the position into a schedule
@@ -47,6 +49,7 @@ class JSP_PSO_Solver:
         for job, group in enumerate(groups):
             for idx in group:
                 permutation[idx] = job
+
         return permutation
 
     """
@@ -59,7 +62,7 @@ class JSP_PSO_Solver:
         job_operations_counter= {j:0 for j in range(self.instance.num_jobs)}
         for priority , job in enumerate(obpermutation):
             op_index = job_operations_counter[job]
-            priority_order[(job,op_index)] = priority
+            priority_order[(int(job),op_index)] = priority
             job_operations_counter[job] += 1        
         return priority_order
     
@@ -77,7 +80,7 @@ class JSP_PSO_Solver:
         sigma = []
         for jidx in range(self.instance.num_jobs):
             sigma.append([])
-            for opidx in range(1,self.instance.num_machines):
+            for opidx in range(1,self.instance.num_machines+1):
                 sigma[jidx].append(self.instance.operations[jidx][opidx-1][1])
         sigma= np.array(sigma)
 
@@ -88,36 +91,38 @@ class JSP_PSO_Solver:
             # Finding phi_star and sigma_star and M_star
             phi_star = float('inf')
             sigma_star = float('inf')
-            for jidx in range(self.instance.num_jobs):
-                for opidx in range(self.instance.num_machines):
-                    if phi[jidx][opidx] < phi_star:
-                        phi_star = phi[jidx][opidx]
-                    if sigma[jidx][opidx] < sigma_star:
-                        sigma_star = sigma[jidx][opidx]
+            for op in S:
+                jidx = op[0]
+                opidx = op[1]
+                if phi[jidx][opidx] < phi_star:
+                    phi_star = phi[jidx][opidx]
+                if sigma[jidx][opidx] < sigma_star:
+                    sigma_star = sigma[jidx][opidx]
             # Getting the candidates for M_star
             M_stars = []
-            for jidx in range(self.instance.num_jobs):
-                for opidx in range(self.instance.num_machines):
-                    if phi[jidx][opidx] == phi_star:
-                        M_stars.append((jidx,opidx,self.instance.operations[jidx][opidx][0]))
+            for op in S:
+                jidx = op[0]
+                opidx = op[1]
+                if phi[jidx][opidx] == phi_star:
+                    M_stars.append((jidx,opidx,self.instance.operations[jidx][opidx][0]))
             # Getting the M_star based on the machine index
-            M_stars = sorted(M_stars, key=lambda x: x[2])
-            M_star = M_stars[0][2]
+            M_star = sorted(M_stars, key=lambda x: x[2])[0][2]            
             jidx_star = M_stars[0][0]
             opidx_star = M_stars[0][1]
             
             
             # Getting the operations in which they occur in M_star and satisfy the formula
             O_stars = []
-            for jidx in range(self.instance.num_jobs):
-                for opidx in range(self.instance.num_machines):
-                    if self.instance.operations[jidx][opidx][0] == M_star:
-                        if self.delta == 0:
-                            if sigma[jidx_star][opidx_star] == sigma_star:
-                                O_stars.append((jidx, opidx))
-                        else:
-                            if sigma[jidx_star][opidx_star] <sigma_star+ self.delta*(phi_star-sigma_star):
-                                O_stars.append((jidx, opidx))
+            for op in S:
+                jidx = op[0]
+                opidx = op[1]
+                if self.instance.operations[jidx][opidx][0] == M_star:
+                    if self.delta == 0:
+                        if sigma[jidx_star][opidx_star] == sigma_star:
+                            O_stars.append((jidx, opidx))
+                    else:
+                        if sigma[jidx_star][opidx_star] <sigma_star+ self.delta*(phi_star-sigma_star):
+                            O_stars.append((jidx, opidx))
             # Selecting O_star based on the priority order
             O_star=sorted(O_stars, key=lambda x: priority_order[x])[0]
 
@@ -137,9 +142,9 @@ class JSP_PSO_Solver:
                 S.add((O_star[0], O_star[1]+1))
         return schedule
     
-    def fitness(self, particle):
+    def fitness(self, schedule):
         # Calculate the makespan of the particle's schedule
-        makespan = max([op[3] for job in particle.schedule for op in job])
+        makespan = max([op[3] for job in schedule for op in job])
         return makespan
     
     def initialize_particle(self, index):

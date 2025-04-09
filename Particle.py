@@ -22,6 +22,18 @@ class Particle:
         self.perform_crossover = False
         self.update_schedule()
         self.update_current_fitness()
+
+    def copy(self):
+        # Create a copy of the particle
+        new_particle = Particle(self.solver,self.index)
+        new_particle.position = self.position.copy()
+        new_particle.velocity = self.velocity.copy()
+        new_particle.personal_best = self.personal_best.copy()
+        new_particle.schedule = self.schedule.copy()
+        new_particle.current_fitness = self.current_fitness
+        new_particle.personal_best_fitness = self.personal_best_fitness
+        new_particle.perform_crossover = self.perform_crossover
+        return new_particle
     
     def update_schedule(self):
         self.schedule=self.solver.decode_position(self.position)
@@ -41,7 +53,7 @@ class Particle:
     
     def update_global_best(self):
         # Update the global best position if the current position is better
-        if self.current_fitness < self.solver.global_best_fitness:
+        if self.current_fitness < self.solver.global_best.current_fitness:
             self.solver.global_best = self.copy()
 
     def update_local_best(self):
@@ -50,9 +62,9 @@ class Particle:
         # Get the neighborhood of the particle
         neighborhood = []
         i=(self.index-(k-1)//2) % K
-        while i%K <= (self.index+(k-1)//2) % K:
+        for j in range(k):
             neighborhood.append(self.solver.particles[i])
-            i+=1
+            i=(i+1)%K
         self.local_best=min(neighborhood, key=lambda p: p.personal_best_fitness).position
 
     def update_near_neighbor_best(self):
@@ -90,7 +102,7 @@ class Particle:
         if self.perform_crossover:
             # Determine whether to perform the crossover or to keep the current position
             if np.random.uniform() > self.solver.pu:
-                self.position=self.solver.global_best_position
+                self.position=self.solver.global_best.position
         else:
             self.position+=self.velocity    
         self.update_schedule()

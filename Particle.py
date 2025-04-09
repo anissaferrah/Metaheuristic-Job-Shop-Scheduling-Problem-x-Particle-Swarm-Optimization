@@ -3,7 +3,6 @@ This code is part of a Job Shop Scheduling Problem (JSP) solution using Particle
 It includes classe for representing a particle in the PSO algorithm.
 """
 import numpy as np
-from GLN_PSOc import JSP_PSO_Solver
 class Particle:
     """
     A class representing a particle in a Particle Swarm Optimization (PSO) algorithm.
@@ -11,10 +10,10 @@ class Particle:
     The purpose is to solve JSP (Job Shop Scheduling Problem) using PSO.
     The particle's position is represented as a random keys encoding of the solution.
     """
-    def __init__(self, index=0,solver=JSP_PSO_Solver()):
+    def __init__(self,solver,index=0):
         self.index = index
         self.solver = solver
-        self.position = np.uniform(size=self.solver.instance.num_operations)
+        self.position = np.random.uniform(size=self.solver.instance.num_operations)
         self.personal_best = self.position.copy()
         self.velocity = np.zeros(self.solver.instance.num_operations)
         self.schedule = None

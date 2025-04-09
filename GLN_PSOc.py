@@ -1,5 +1,4 @@
 from Particle import Particle
-from Instance import Instance
 import numpy as np
 class JSP_PSO_Solver:
     """
@@ -26,10 +25,10 @@ class JSP_PSO_Solver:
         self.particles = [self.initialize_particle(i) for i in range(population_size)]
         self.global_best = None
 
-    def decode_position(self, particle):
+    def decode_position(self, position):
         # Decode the position into a schedule
         # Get the operation-based permutation from the position
-        obpermutation = self.get_operation_based_permutation(particle.position)
+        obpermutation = self.get_operation_based_permutation(position)
         # Convert the operation-based permutation into a priority order
         priority_order = self.obpermuation_to_priority_order(obpermutation)
         # Generate the schedule based on the priority order

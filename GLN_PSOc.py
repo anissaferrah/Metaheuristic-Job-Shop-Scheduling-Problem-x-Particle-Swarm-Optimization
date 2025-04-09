@@ -22,7 +22,7 @@ class JSP_PSO_Solver:
         self.pu = pu # Probability of keeping the same position in the next iteration and not setting it to pgbest
         self.delta = delta # Delta value for the scheduling algorithm
         self.particles = [self.initialize_particle(i) for i in range(population_size)]
-        self.global_best_position = None
+        self.global_best_position = np.zeros(self.instance.num_operations)
         self.global_best_fitness = float('inf')
 
     def decode_position(self, particle):
@@ -65,7 +65,6 @@ class JSP_PSO_Solver:
     
     def generate_schedule(self, priority_order ):
         # Initialize the schedule and needed variables
-        stage = 1
         schedule = [[(-1,-1,-1,-1) for _ in range(self.instance.num_machines)] for _ in range(self.instance.num_jobs)]
         S = set()
         for op in priority_order:
@@ -136,7 +135,6 @@ class JSP_PSO_Solver:
             S.remove(O_star)
             if O_star[1]+1 < self.instance.num_machines:
                 S.add((O_star[0], O_star[1]+1))
-            stage += 1
         return schedule
     
     def fitness(self, particle):
@@ -148,4 +146,18 @@ class JSP_PSO_Solver:
         particle=Particle(index=index ,solver=self)
         return particle
     
-    
+    def run_solver(self):
+        # Run the PSO algorithm
+        for iteration in range(self.max_iterations):
+            for particle in self.particles:
+                particle.update_personal_best()
+                particle.update_global_best()
+                particle.update_local_best()
+                particle.update_near_neighbor_best()
+                particle.update_velocity()
+            for particle in self.particles:
+                particle.update_position()
+            # Update the global best position and fitness
+            self.global_best_position = min(self.particles, key=lambda p: p.personal_best_fitness).personal_best
+            self.global_best_fitness = min(self.particles, key=lambda p: p.personal_best_fitness).personal_best_fitness
+        return self.global_best_position, self.global_best_fitness

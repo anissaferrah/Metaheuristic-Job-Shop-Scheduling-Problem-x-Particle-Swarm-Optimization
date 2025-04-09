@@ -23,7 +23,6 @@ class Particle:
         self.perform_crossover = False
         self.update_schedule()
         self.update_current_fitness()
-
     
     def update_schedule(self):
         self.schedule=self.solver.decode_position(self.position)
@@ -44,8 +43,7 @@ class Particle:
     def update_global_best(self):
         # Update the global best position if the current position is better
         if self.current_fitness < self.solver.global_best_fitness:
-            self.solver.global_best_position = self.position.copy()
-            self.solver.global_best_fitness = self.current_fitness
+            self.solver.global_best = self.copy()
 
     def update_local_best(self):
         k=self.solver.neighberhood_size
@@ -82,7 +80,7 @@ class Particle:
 
             self.velocity = (self.solver.weight * self.velocity +
                              self.solver.cpersonal * rp * (self.personal_best - self.position) +
-                             self.solver.cglobal * rg * (self.solver.global_best_position - self.position) +
+                             self.solver.cglobal * rg * (self.solver.global_best.position - self.position) +
                              self.solver.clocal * rl * (self.local_best - self.position) +
                              self.solver.cneighbor * rn * (self.near_neighbor_best - self.position))
             self.velocity = np.clip(self.velocity, -self.solver.vmax, self.solver.vmax)

@@ -22,8 +22,7 @@ class JSP_PSO_Solver:
         self.pu = pu # Probability of keeping the same position in the next iteration and not setting it to pgbest
         self.delta = delta # Delta value for the scheduling algorithm
         self.particles = [self.initialize_particle(i) for i in range(population_size)]
-        self.global_best_position = np.zeros(self.instance.num_operations)
-        self.global_best_fitness = float('inf')
+        self.global_best = None
 
     def decode_position(self, particle):
         # Decode the position into a schedule
@@ -157,7 +156,7 @@ class JSP_PSO_Solver:
                 particle.update_velocity()
             for particle in self.particles:
                 particle.update_position()
-            # Update the global best position and fitness
-            self.global_best_position = min(self.particles, key=lambda p: p.personal_best_fitness).personal_best
-            self.global_best_fitness = min(self.particles, key=lambda p: p.personal_best_fitness).personal_best_fitness
-        return self.global_best_position, self.global_best_fitness
+        for particle in self.particles:
+                particle.update_global_best()    
+
+        return self.global_best

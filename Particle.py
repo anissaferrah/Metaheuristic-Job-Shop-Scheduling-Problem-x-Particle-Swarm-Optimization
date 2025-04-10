@@ -43,12 +43,13 @@ class Particle:
     
 
     def fitness(self):
-        # Calculate the fitness of the particle's position
-        return self.solver.fitness(self.schedule)
+        # Calculate the makespan of the particle's schedule
+        makespan = max([op[3] for job in self.schedule for op in job])
+        return makespan
     
     def update_personal_best(self):
         if self.current_fitness < self.personal_best_fitness:
-            self.best_position = self.position.copy()
+            self.personal_best = self.position.copy()
             self.personal_best_fitness = self.current_fitness
     
     def update_global_best(self):
@@ -66,18 +67,19 @@ class Particle:
             neighborhood.append(self.solver.particles[i])
             i=(i+1)%K
         self.local_best=min(neighborhood, key=lambda p: p.personal_best_fitness).position
-
-    def update_near_neighbor_best(self):
-        def FDR(j,d):
+    @staticmethod
+    def FDR(particle,j,d):
             # Calculate the Fitness Ddistance Ratio value between this particle and the i-th particle for a given dimension d
-            if self.index!=j:
-                return (self.current_fitness-self.solver.particles[j].personal_best_fitness)/abs(self.solver.particles[j].personal_best[d]-self.position[d])
+            if particle.index!=j:
+                return (particle.current_fitness-particle.solver.particles[j].personal_best_fitness)/abs(particle.solver.particles[j].personal_best[d]-particle.position[d])
             else:
                 return -1
+    def update_near_neighbor_best(self):
+        
         # Find the near neighbor with the best fitness distance ratio
         self.near_neighbor_best = np.zeros(self.solver.instance.num_operations)
         for d in range(self.solver.instance.num_operations):
-            self.near_neighbor_best[d] = sorted(self.solver.particles, key=lambda p: FDR(p.index,d),reverse=True).pop(0).personal_best[d]
+            self.near_neighbor_best[d] = sorted(self.solver.particles, key=lambda p: Particle.FDR(self,p.index,d),reverse=True).pop(0).personal_best[d]
         
     def update_velocity(self):
         # Determine whether or not to do crossover

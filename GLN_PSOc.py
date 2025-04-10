@@ -24,8 +24,6 @@ class JSP_PSO_Solver:
         self.delta = delta # Delta value for the scheduling algorithm
         self.particles = [self.initialize_particle(i) for i in range(population_size)]
         self.global_best = self.particles[0]  # Initialize the global best particle
-        self.global_best.update_schedule()
-        self.global_best.update_current_fitness()
 
     def decode_position(self, position):
         # Decode the position into a schedule
@@ -106,9 +104,7 @@ class JSP_PSO_Solver:
                 if phi[jidx][opidx] == phi_star:
                     M_stars.append((jidx,opidx,self.instance.operations[jidx][opidx][0]))
             # Getting the M_star based on the machine index
-            M_star = sorted(M_stars, key=lambda x: x[2])[0][2]            
-            jidx_star = M_stars[0][0]
-            opidx_star = M_stars[0][1]
+            M_star = sorted(M_stars, key=lambda x: x[2])[0][2]  
             
             
             # Getting the operations in which they occur in M_star and satisfy the formula
@@ -118,10 +114,10 @@ class JSP_PSO_Solver:
                 opidx = op[1]
                 if self.instance.operations[jidx][opidx][0] == M_star:
                     if self.delta == 0:
-                        if sigma[jidx_star][opidx_star] == sigma_star:
+                        if sigma[jidx][opidx] == sigma_star:
                             O_stars.append((jidx, opidx))
                     else:
-                        if sigma[jidx_star][opidx_star] <sigma_star+ self.delta*(phi_star-sigma_star):
+                        if sigma[jidx][opidx] <sigma_star+ self.delta*(phi_star-sigma_star):
                             O_stars.append((jidx, opidx))
             # Selecting O_star based on the priority order
             O_star=sorted(O_stars, key=lambda x: priority_order[x])[0]
@@ -141,12 +137,7 @@ class JSP_PSO_Solver:
             if O_star[1]+1 < self.instance.num_machines:
                 S.add((O_star[0], O_star[1]+1))
         return schedule
-    
-    def fitness(self, schedule):
-        # Calculate the makespan of the particle's schedule
-        makespan = max([op[3] for job in schedule for op in job])
-        return makespan
-    
+        
     def initialize_particle(self, index):
         particle=Particle(index=index ,solver=self)
         return particle
@@ -162,13 +153,17 @@ class JSP_PSO_Solver:
         for iteration in range(self.max_iterations):
             for particle in self.particles:
                 particle.update_personal_best()
+            for particle in self.particles:
                 particle.update_global_best()
+            for particle in self.particles:
                 particle.update_local_best()
+            for particle in self.particles:
                 particle.update_near_neighbor_best()
+            for particle in self.particles:
                 particle.update_velocity()
             for particle in self.particles:
                 particle.update_position()
         for particle in self.particles:
-                particle.update_global_best()    
+                particle.update_global_best()  
 
         return self.global_best

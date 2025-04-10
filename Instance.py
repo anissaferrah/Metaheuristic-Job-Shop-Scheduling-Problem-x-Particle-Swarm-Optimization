@@ -30,7 +30,7 @@ class Instance:
             index+= num_jobs + 1
             for i in range(index,index+num_jobs):
                 line= lines[i].strip().split()
-                operations.append([(int(line[j]), times[i][j]) for j in range(0, len(line))])
+                operations.append([(int(line[j])-1, times[i-index][j]) for j in range(0, len(line))])
             index+= num_jobs + 3
             instance = Instance(num_jobs, num_machines, operations)
             Instance.instances.append(instance)        

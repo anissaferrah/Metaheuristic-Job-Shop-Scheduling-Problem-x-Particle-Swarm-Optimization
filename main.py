@@ -1,7 +1,10 @@
+import matplotlib
+matplotlib.use('Agg')  # Set backend before importing pyplot
 from Instance import Instance
 from GLN_PSOc import JSP_PSO_Solver
 import matplotlib.pyplot as plt
 import numpy as np
+from os import getcwd
 
 def print_schedule(schedule):
     """Affiche le planning de manière lisible"""
@@ -47,40 +50,37 @@ def plot_gantt(schedule, num_machines):
     ax.set_title("Diagramme de Gantt - Solution optimale")
     plt.grid(axis="x", linestyle="--", alpha=0.7)
     plt.tight_layout()
-    plt.show()
+    plt.savefig('gantt_chart.png')
+    print("Gantt chart saved as 'gantt_chart.png'")
 
 def main():
-    # Charger les instances (remplacer par votre fichier de données)
-    # Instance.load_instances("chemin/vers/vos/données.txt")
+    # operations = [
+    #     [(0, 2), (3, 4), (2, 1), (1, 1)],  # Job 0
+    #     [(3, 3), (0, 1), (1, 1), (2, 5)],   # Job 1
+    #     [(0, 4), (1, 1), (3, 1), (2, 2)]    # Job 2
+    # ]
+    # instance = Instance(num_jobs=3, num_machines=4, operations=operations)
+    print(getcwd())
+    Instance.load_instances('Metaheuristic-Job-Shop-Scheduling-Problem-x-Particle-Swarm-Optimization/benchmarks/tai20_15.txt')
+    instance = Instance.get_instance(0)
+    solver = JSP_PSO_Solver(instance=instance,
+                            delta=0,)
+        # instance=instance,
+        # population_size=30,
+        # max_iteration=1000,
+        # weight=0.9,
+        # cpersonal=0.5,
+        # cglobal=0.5,
+        # clocal=1.5,
+        # cneighbor=1.5,
+        # vmax=0.25,
+        # crossover_probability=0.3,
+        # pu=0.7,
+        # delta=0
     
-    # Créer une instance manuellement pour l'exemple
-    operations = [
-        [(0, 2), (3, 4), (2, 1), (1, 1)],  # Job 0
-        [(3, 3), (0, 1), (1, 1), (2, 5)],   # Job 1
-        [(0, 4), (1, 1), (3, 1), (2, 2)]    # Job 2
-    ]
-    instance = Instance(num_jobs=3, num_machines=4, operations=operations)
     
-    # Configurer le solveur PSO
-    solver = JSP_PSO_Solver(
-        instance=instance,
-        population_size=30,
-        max_iteration=100,
-        weight=0.9,
-        cpersonal=0.5,
-        cglobal=0.5,
-        clocal=1.5,
-        cneighbor=1.5,
-        vmax=0.25,
-        crossover_probability=0.3,
-        pu=0.7,
-        delta=0
-    )
-    
-    # Exécuter le solveur
     best_particle = solver.run_solver()
     
-    # Afficher les résultats
     print(f"\nMakespan optimal: {best_particle.personal_best_fitness}")
     print_schedule(best_particle.schedule)
     plot_gantt(best_particle.schedule, instance.num_machines)

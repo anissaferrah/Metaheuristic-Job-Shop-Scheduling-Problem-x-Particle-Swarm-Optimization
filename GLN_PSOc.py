@@ -130,7 +130,7 @@ class JSP_PSO_Solver:
             else:
                 start_time = schedule[O_star[0]][O_star[1]-1][3]
             end_time = start_time + self.instance.operations[O_star[0]][O_star[1]][1]
-            schedule[O_star[0]][O_star[1]] = (O_star[0], M_star, start_time, end_time)
+            schedule[O_star[0]][O_star[1]] = (O_star[0]+1, M_star+1, start_time, end_time)
             secheduled_machines_end_times[M_star] = end_time
             # Create the next stage set of operations to be schuduled
             S.remove(O_star)

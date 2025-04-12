@@ -54,30 +54,28 @@ def plot_gantt(schedule, num_machines):
     print("Gantt chart saved as 'gantt_chart.png'")
 
 def main():
-    # operations = [
-    #     [(0, 2), (3, 4), (2, 1), (1, 1)],  # Job 0
-    #     [(3, 3), (0, 1), (1, 1), (2, 5)],   # Job 1
-    #     [(0, 4), (1, 1), (3, 1), (2, 2)]    # Job 2
-    # ]
-    # instance = Instance(num_jobs=3, num_machines=4, operations=operations)
-    print(getcwd())
-    Instance.load_instances('Metaheuristic-Job-Shop-Scheduling-Problem-x-Particle-Swarm-Optimization/benchmarks/tai20_15.txt')
-    instance = Instance.get_instance(0)
-    solver = JSP_PSO_Solver(instance=instance,
-                            delta=0,)
-        # instance=instance,
-        # population_size=30,
-        # max_iteration=1000,
-        # weight=0.9,
-        # cpersonal=0.5,
-        # cglobal=0.5,
-        # clocal=1.5,
-        # cneighbor=1.5,
-        # vmax=0.25,
-        # crossover_probability=0.3,
-        # pu=0.7,
-        # delta=0
-    
+    operations = [
+    [(0, 2), (1, 1), (2, 3)],  # Job 0
+    [(2, 2), (1, 1),(0, 1)]  # Job 1
+]
+
+    instance = Instance(num_jobs=2, num_machines=3, operations=operations)
+    #print(getcwd())
+   
+    #instance = Instance.get_instance(0)
+    solver = JSP_PSO_Solver(instance=instance)
+     #    population_size=30,
+     #    max_iteration=1,
+      #   weight=0.9,
+      #   cpersonal=0.5,
+      #   cglobal=0.5,
+      #   clocal=1.5,
+      #   cneighbor=1.5,
+      #   vmax=0.25,
+      #   crossover_probability=0.3,
+       #  pu=0.7,
+       #  delta=0
+    #)
     
     best_particle = solver.run_solver()
     

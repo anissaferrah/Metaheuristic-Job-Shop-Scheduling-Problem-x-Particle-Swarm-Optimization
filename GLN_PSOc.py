@@ -5,11 +5,12 @@ class JSP_PSO_Solver:
     A class to solve the Job Shop Scheduling Problem (JSP) using Particle Swarm Optimization (PSO).
     The class includes methods for initializing the particles, updating their positions, and calculating fitness.
     """
-    def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=1000,weight=0.9,slope=-5/9990,intercept=8996/9990,min_weight=0.1,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
+    def __init__(self, instance, population_size=40,neighberhood_size=7, max_iteration=100,weight=0.9,slope=-5/9990,intercept=8996/9990,min_weight=0.1,cpersonal=0.5,cglobal=0.5,clocal=1.5,cneighbor=1.5,vmax=0.25,crossover_probability=0.3,pu=0.7,delta=0):
         self.instance = instance
         self.population_size = population_size
         self.neighberhood_size = neighberhood_size
         self.max_iterations = max_iteration
+        self.initial_weight = weight
         self.weight = weight  # Inertia weight
         self.slope = slope # Slope value for the inertia weight
         self.intercept = intercept # Intercept value for the inertia weight
@@ -64,106 +65,78 @@ class JSP_PSO_Solver:
             job_operations_counter[job] += 1        
         return priority_order
     
-    def generate_schedule(self, priority_order ):
-        # Initialize the schedule and needed variables
-        schedule = [[(-1,-1,-1,-1) for _ in range(self.instance.num_machines)] for _ in range(self.instance.num_jobs)]
+    def generate_schedule(self, priority_order):
+        schedule = [[(-1, -1, -1, -1) for _ in range(self.instance.num_machines)] 
+                   for _ in range(self.instance.num_jobs)]
         S = set()
-        for op in priority_order:
-            if op[1] == 0:
-                S.add(op)    
-        #  The processing time of the operation Oij
-        processing_times = np.array([[op[1] for op in job] for job in self.instance.operations])
+        machine_end_times = [0] * self.instance.num_machines
+        
+        for job in range(self.instance.num_jobs):
+            S.add((job, 0))
 
-        # The earliest time that operation Oij in St could be started
-        sigma = []
-        for jidx in range(self.instance.num_jobs):
-            sigma.append([])
-            for opidx in range(1,self.instance.num_machines+1):
-                sigma[jidx].append(self.instance.operations[jidx][opidx-1][1])
-        sigma= np.array(sigma)
-
-        phi= np.add(processing_times, sigma)
-
-        secheduled_machines_end_times = [0]*self.instance.num_machines
+        processing_times = [[op[1] for op in job_ops] for job_ops in self.instance.operations]
+        
         while S:
-            # Finding phi_star and sigma_star and M_star
-            phi_star = float('inf')
-            sigma_star = float('inf')
-            for op in S:
-                jidx = op[0]
-                opidx = op[1]
-                if phi[jidx][opidx] < phi_star:
-                    phi_star = phi[jidx][opidx]
-                if sigma[jidx][opidx] < sigma_star:
-                    sigma_star = sigma[jidx][opidx]
-            # Getting the candidates for M_star
-            M_stars = []
-            for op in S:
-                jidx = op[0]
-                opidx = op[1]
-                if phi[jidx][opidx] == phi_star:
-                    M_stars.append((jidx,opidx,self.instance.operations[jidx][opidx][0]))
-            # Getting the M_star based on the machine index
-            M_star = sorted(M_stars, key=lambda x: x[2])[0][2]  
+            sigmas = []
+            phis = []
+            for (j, op_idx) in S:
+                machine = self.instance.operations[j][op_idx][0]
+                prev_end = schedule[j][op_idx-1][3] if op_idx > 0 else 0
+                sigma = max(prev_end, machine_end_times[machine])
+                sigmas.append(sigma)
+                phis.append(sigma + processing_times[j][op_idx])
             
+            sigma_star = min(sigmas)
+            phi_star = min(phis)
             
-            # Getting the operations in which they occur in M_star and satisfy the formula
-            O_stars = []
-            for op in S:
-                jidx = op[0]
-                opidx = op[1]
-                if self.instance.operations[jidx][opidx][0] == M_star:
-                    if self.delta == 0:
-                        if sigma[jidx][opidx] == sigma_star:
-                            O_stars.append((jidx, opidx))
-                    else:
-                        if sigma[jidx][opidx] <sigma_star+ self.delta*(phi_star-sigma_star):
-                            O_stars.append((jidx, opidx))
-            # Selecting O_star based on the priority order
-            O_star=sorted(O_stars, key=lambda x: priority_order[x])[0]
-
-            # Create the next stage schedule
-            if O_star[1] == 0:
-                start_time = secheduled_machines_end_times[M_star]
-            elif secheduled_machines_end_times[M_star] > schedule[O_star[0]][O_star[1]-1][3]:
-                start_time = secheduled_machines_end_times[M_star]
-            else:
-                start_time = schedule[O_star[0]][O_star[1]-1][3]
-            end_time = start_time + self.instance.operations[O_star[0]][O_star[1]][1]
-            schedule[O_star[0]][O_star[1]] = (O_star[0]+1, M_star+1, start_time, end_time)
-            secheduled_machines_end_times[M_star] = end_time
-            # Create the next stage set of operations to be schuduled
-            S.remove(O_star)
-            if O_star[1]+1 < self.instance.num_machines:
-                S.add((O_star[0], O_star[1]+1))
+            candidates = []
+            for (j, op_idx) in S:
+                machine = self.instance.operations[j][op_idx][0]
+                prev_end = schedule[j][op_idx-1][3] if op_idx > 0 else 0
+                sigma = max(prev_end, machine_end_times[machine])
+                if sigma <= sigma_star + self.delta * (phi_star - sigma_star):
+                    candidates.append((j, op_idx, machine))
+            
+            candidates.sort(key=lambda x: (x[2], priority_order[(x[0], x[1])]))
+            j, op_idx, machine = candidates[0]
+            
+            prev_end = schedule[j][op_idx-1][3] if op_idx > 0 else 0
+            start = max(prev_end, machine_end_times[machine])
+            end = start + processing_times[j][op_idx]
+            
+            schedule[j][op_idx] = (j+1, machine+1, start, end)
+            machine_end_times[machine] = end
+            S.remove((j, op_idx))
+            
+            if op_idx + 1 < self.instance.num_machines:
+                S.add((j, op_idx + 1))
+                
         return schedule
         
     def initialize_particle(self, index):
         particle=Particle(index=index ,solver=self)
         return particle
     
-    def update_weight(self):
-        # Update the inertia weight based on the iteration number
-        self.weight = self.weight * self.slope + self.intercept
-        if self.weight < self.min_weight:
-            self.weight = self.min_weight
+   
+    def update_weight(self, iteration):
+    # Décroissance linéaire de 0.9 → 0.4 sur les itérations
+        self.weight = self.initial_weight - (self.initial_weight - self.min_weight) * (iteration / self.max_iterations)
+
     
     def run_solver(self):
-        # Run the PSO algorithm
         for iteration in range(self.max_iterations):
+            self.update_weight(iteration)
+            
             for particle in self.particles:
-                particle.update_personal_best()
-            for particle in self.particles:
-                particle.update_global_best()
+                 particle.update_personal_best()
+            
+            current_best = min(self.particles, key=lambda p: p.personal_best_fitness)
+            if current_best.personal_best_fitness < self.global_best.personal_best_fitness:
+                self.global_best = current_best.copy()
+            
             for particle in self.particles:
                 particle.update_local_best()
-            for particle in self.particles:
                 particle.update_near_neighbor_best()
-            for particle in self.particles:
                 particle.update_velocity()
-            for particle in self.particles:
                 particle.update_position()
-        for particle in self.particles:
-                particle.update_global_best()  
-
-        return self.global_best
+        return self.global_best        

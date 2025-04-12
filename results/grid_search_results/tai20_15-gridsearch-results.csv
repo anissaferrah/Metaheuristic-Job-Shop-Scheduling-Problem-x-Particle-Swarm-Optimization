@@ -1,0 +1,5 @@
+instance_id,population_size,neighberhood_size,max_iteration,weight,cpersonal,cglobal,clocal,cneighbor,vmax,crossover_probability,pu,makespan,execution_time
+0,20,5,100,0.7,0.5,0.5,1.0,1.0,0.25,0.3,1.0,1537,172.79276490211487
+0,20,5,100,0.7,0.5,0.5,1.0,1.0,0.25,0.3,0.7,1503,172.88771557807922
+0,20,5,100,0.7,0.5,0.5,1.0,1.0,0.25,0.5,0.5,1564,172.86072206497192
+0,20,5,100,0.7,0.5,0.5,1.0,1.0,0.25,0.3,0.5,1551,174.2368667125702
